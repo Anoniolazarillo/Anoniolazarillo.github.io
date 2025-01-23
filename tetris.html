@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris en JavaScript</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #111;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="tetris" width="300" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('tetris');
+        const ctx = canvas.getContext('2d');
+
+        // Configuración del juego
+        const COLS = 10;
+        const ROWS = 20;
+        const BLOCK_SIZE = 30;
+
+        // Paleta de colores para las piezas
+        const COLORS = [
+            'cyan', 'blue', 'orange', 'yellow', 'green', 'purple', 'red'
+        ];
+
+        // Definición de las formas de las piezas (tetrominos)
+        const TETROMINOS = [
+            [[1, 1, 1, 1]],  // I
+            [[1, 1], [1, 1]],  // O
+            [[0, 1, 0], [1, 1, 1]],  // T
+            [[1, 1, 0], [0, 1, 1]],  // S
+            [[0, 1, 1], [1, 1, 0]],  // Z
+            [[1, 0, 0], [1, 1, 1]],  // L
+            [[0, 0, 1], [1, 1, 1]]   // J
+        ];
+
+        let board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+        let currentPiece = generatePiece();
+        let gameInterval;
+
+        // Dibujar el tablero
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    if (board[row][col]) {
+                        ctx.fillStyle = board[row][col];
+                        ctx.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                        ctx.strokeStyle = 'black';
+                        ctx.strokeRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                    }
+                }
+            }
+        }
+
+        // Dibujar la pieza actual
+        function drawPiece() {
+            const shape = currentPiece.shape;
+            const color = currentPiece.color;
+            for (let row = 0; row < shape.length; row++) {
+                for (let col = 0; col < shape[row].length; col++) {
+                    if (shape[row][col]) {
+                        ctx.fillStyle = color;
+                        ctx.fillRect((currentPiece.x + col) * BLOCK_SIZE, (currentPiece.y + row) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                        ctx.strokeStyle = 'black';
+                        ctx.strokeRect((currentPiece.x + col) * BLOCK_SIZE, (currentPiece.y + row) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                    }
+                }
+            }
+        }
+
+        // Generar una nueva pieza aleatoria
+        function generatePiece() {
+            const index = Math.floor(Math.random() * TETROMINOS.length);
+            return {
+                shape: TETROMINOS[index],
+                color: COLORS[index],
+                x: Math.floor(COLS / 2) - Math.floor(TETROMINOS[index][0].length / 2),
+                y: 0
+            };
+        }
+
+        // Comprobar si la pieza puede moverse
+        function canMove(dx, dy, rotation) {
+            const shape = rotation ? rotatePiece(currentPiece.shape) : currentPiece.shape;
+            for (let row = 0; row < shape.length; row++) {
+                for (let col = 0; col < shape[row].length; col++) {
+                    if (shape[row][col]) {
+                        const newX = currentPiece.x + col + dx;
+                        const newY = currentPiece.y + row + dy;
+                        if (newX < 0 || newX >= COLS || newY >= ROWS || (newY >= 0 && board[newY][newX])) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        // Mover la pieza
+        function movePiece(dx, dy, rotation = false) {
+            if (canMove(dx, dy, rotation)) {
+                currentPiece.x += dx;
+                currentPiece.y += dy;
+                if (rotation) {
+                    currentPiece.shape = rotatePiece(currentPiece.shape);
+                }
+                drawBoard();
+                drawPiece();
+            }
+        }
+
+        // Rotar la pieza
+        function rotatePiece(shape) {
+            return shape[0].map((_, index) => shape.map(row => row[index])).reverse();
+        }
+
+        // Fijar la pieza en el tablero
+        function fixPiece() {
+            const shape = currentPiece.shape;
+            const color = currentPiece.color;
+            for (let row = 0; row < shape.length; row++) {
+                for (let col = 0; col < shape[row].length; col++) {
+                    if (shape[row][col]) {
+                        board[currentPiece.y + row][currentPiece.x + col] = color;
+                    }
+                }
+            }
+        }
+
+        // Eliminar líneas completas
+        function removeLines() {
+            for (let row = ROWS - 1; row >= 0; row--) {
+                if (board[row].every(cell => cell !== null)) {
+                    board.splice(row, 1);
+                    board.unshift(Array(COLS).fill(null));
+                }
+            }
+        }
+
+        // Actualizar el juego
+        function updateGame() {
+            if (canMove(0, 1, false)) {
+                movePiece(0, 1);
+            } else {
+                fixPiece();
+                removeLines();
+                currentPiece = generatePiece();
+                if (!canMove(0, 0, false)) {
+                    alert('Game Over');
+                    clearInterval(gameInterval);
+                }
+            }
+        }
+
+        // Manejar la entrada del teclado
+        function keyDownHandler(e) {
+            if (e.key === 'ArrowLeft') {
+                movePiece(-1, 0);
+            } else if (e.key === 'ArrowRight') {
+                movePiece(1, 0);
+            } else if (e.key === 'ArrowDown') {
+                movePiece(0, 1);
+            } else if (e.key === 'ArrowUp') {
+                movePiece(0, 0, true);  // Rotar pieza
+            }
+        }
+
+        // Iniciar el juego
+        window.addEventListener('keydown', keyDownHandler);
+        gameInterval = setInterval(updateGame, 500);  // 500ms para cada movimiento
+
+    </script>
+</body>
+</html>

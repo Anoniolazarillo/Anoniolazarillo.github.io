@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galaxy Shooter</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1e1e1e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Jugador (nave espacial)
+        const player = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height - 60,
+            width: 50,
+            height: 50,
+            speed: 5,
+            dx: 0
+        };
+
+        // Proyectiles (balas)
+        const bullets = [];
+        const bulletSpeed = 5;
+
+        // Enemigos
+        const enemies = [];
+        const enemySpeed = 2;
+
+        let gameOver = false;
+        let score = 0;
+
+        // Función para dibujar al jugador
+        function drawPlayer() {
+            ctx.fillStyle = "#00f";
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
+
+        // Función para dibujar los proyectiles
+        function drawBullets() {
+            ctx.fillStyle = "#fff";
+            bullets.forEach((bullet) => {
+                ctx.fillRect(bullet.x, bullet.y, 5, 10);
+            });
+        }
+
+        // Función para dibujar los enemigos
+        function drawEnemies() {
+            ctx.fillStyle = "#f00";
+            enemies.forEach((enemy) => {
+                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+            });
+        }
+
+        // Función para mover al jugador
+        function movePlayer() {
+            player.x += player.dx;
+
+            // Evitar que el jugador se salga de los bordes
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+        }
+
+        // Función para mover los proyectiles
+        function moveBullets() {
+            bullets.forEach((bullet, index) => {
+                bullet.y -= bulletSpeed;
+                if (bullet.y < 0) {
+                    bullets.splice(index, 1); // Eliminar las balas fuera de pantalla
+                }
+            });
+        }
+
+        // Función para mover los enemigos
+        function moveEnemies() {
+            enemies.forEach((enemy, index) => {
+                enemy.y += enemySpeed;
+                if (enemy.y > canvas.height) {
+                    enemies.splice(index, 1); // Eliminar enemigos que salen de la pantalla
+                }
+            });
+        }
+
+        // Función para detectar colisiones
+        function detectCollisions() {
+            bullets.forEach((bullet, bIndex) => {
+                enemies.forEach((enemy, eIndex) => {
+                    if (bullet.x < enemy.x + enemy.width &&
+                        bullet.x + 5 > enemy.x &&
+                        bullet.y < enemy.y + enemy.height &&
+                        bullet.y + 10 > enemy.y) {
+                        
+                        // Eliminar enemigo y bala al detectar colisión
+                        enemies.splice(eIndex, 1);
+                        bullets.splice(bIndex, 1);
+                        score += 10; // Incrementar puntuación
+                    }
+                });
+            });
+        }
+
+        // Función para generar enemigos
+        function generateEnemies() {
+            if (Math.random() < 0.02) { // Probabilidad de generar un nuevo enemigo
+                const enemyX = Math.random() * (canvas.width - 50);
+                const enemyY = -50;
+                enemies.push({
+                    x: enemyX,
+                    y: enemyY,
+                    width: 50,
+                    height: 50
+                });
+            }
+        }
+
+        // Función para mostrar el marcador y el estado del juego
+        function drawScore() {
+            ctx.fillStyle = "#fff";
+            ctx.font = "20px Arial";
+            ctx.fillText("Puntuación: " + score, 10, 30);
+        }
+
+        // Función para manejar la entrada del teclado
+        function keyDownHandler(e) {
+            if (e.key == "Right" || e.key == "ArrowRight") {
+                player.dx = player.speed;
+            } else if (e.key == "Left" || e.key == "ArrowLeft") {
+                player.dx = -player.speed;
+            } else if (e.key == " " || e.key == "Spacebar") {
+                bullets.push({ x: player.x + player.width / 2 - 2.5, y: player.y });
+            }
+        }
+
+        function keyUpHandler(e) {
+            if (e.key == "Right" || e.key == "ArrowRight" || e.key == "Left" || e.key == "ArrowLeft") {
+                player.dx = 0;
+            }
+        }
+
+        // Función principal del juego
+        function gameLoop() {
+            if (gameOver) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                ctx.fillRect(0, canvas.height / 2 - 30, canvas.width, 60);
+                ctx.fillStyle = "#fff";
+                ctx.font = "30px Arial";
+                ctx.fillText("Game Over! Score: " + score, canvas.width / 2 - 150, canvas.height / 2);
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiar el canvas
+            drawPlayer();
+            drawBullets();
+            drawEnemies();
+            drawScore();
+
+            movePlayer();
+            moveBullets();
+            moveEnemies();
+            detectCollisions();
+            generateEnemies();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Agregar eventos de teclado
+        window.addEventListener("keydown", keyDownHandler, false);
+        window.addEventListener("keyup", keyUpHandler, false);
+
+        // Iniciar el juego
+        gameLoop();
+    </script>
+</body>
+</html>

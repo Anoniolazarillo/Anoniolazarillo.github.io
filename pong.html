@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong con Enemigo y Puntuación - Colores</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #2c3e50;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="pong" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('pong');
+        const ctx = canvas.getContext('2d');
+
+        // Paddles (Palas)
+        const paddleWidth = 10, paddleHeight = 100;
+        const player = {
+            x: 0,
+            y: canvas.height / 2 - paddleHeight / 2,
+            width: paddleWidth,
+            height: paddleHeight,
+            speed: 5,
+            dy: 0,
+            color: '#3498db' // Color azul para el jugador
+        };
+        const enemy = {
+            x: canvas.width - paddleWidth,
+            y: canvas.height / 2 - paddleHeight / 2,
+            width: paddleWidth,
+            height: paddleHeight,
+            speed: 3,
+            color: '#e74c3c' // Color rojo para el enemigo
+        };
+
+        // Ball (Pelota)
+        const ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 10,
+            speed: 4,
+            dx: 4,
+            dy: 4,
+            color: '#f39c12' // Color amarillo para la pelota
+        };
+
+        // Puntuación
+        let playerScore = 0;
+        let enemyScore = 0;
+
+        // Dibujar la paleta (paddle)
+        function drawPaddle(x, y, width, height, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
+        }
+
+        // Dibujar la pelota (ball)
+        function drawBall(x, y, radius, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Dibujar el marcador
+        function drawScore() {
+            ctx.font = '32px Arial';
+            ctx.fillStyle = '#ecf0f1'; // Color blanco para el marcador
+            ctx.fillText(`Jugador: ${playerScore}`, 50, 50);
+            ctx.fillText(`Enemigo: ${enemyScore}`, canvas.width - 200, 50);
+        }
+
+        // Mover la paleta del jugador
+        function movePlayer() {
+            player.y += player.dy;
+
+            // Evitar que la paleta se salga de la pantalla
+            if (player.y < 0) player.y = 0;
+            if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+        }
+
+        // Mover la paleta del enemigo (IA simple)
+        function moveEnemy() {
+            if (enemy.y + enemy.height / 2 < ball.y) {
+                enemy.y += enemy.speed;
+            } else {
+                enemy.y -= enemy.speed;
+            }
+
+            // Evitar que la paleta del enemigo se salga de la pantalla
+            if (enemy.y < 0) enemy.y = 0;
+            if (enemy.y + enemy.height > canvas.height) enemy.y = canvas.height - enemy.height;
+        }
+
+        // Mover la pelota
+        function moveBall() {
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Rebote de la pelota en el borde superior e inferior
+            if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
+                ball.dy *= -1;
+            }
+
+            // Rebote de la pelota en las palas (jugador y enemigo)
+            if (ball.x - ball.radius < player.x + player.width && ball.y > player.y && ball.y < player.y + player.height) {
+                ball.dx *= -1;
+            }
+
+            if (ball.x + ball.radius > enemy.x && ball.y > enemy.y && ball.y < enemy.y + enemy.height) {
+                ball.dx *= -1;
+            }
+
+            // Marcar un punto
+            if (ball.x - ball.radius < 0) {
+                enemyScore++;
+                resetBall();
+            } else if (ball.x + ball.radius > canvas.width) {
+                playerScore++;
+                resetBall();
+            }
+        }
+
+        // Reiniciar la pelota al centro
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.dx *= -1;
+        }
+
+        // Función de actualización
+        function update() {
+            movePlayer();
+            moveEnemy();
+            moveBall();
+        }
+
+        // Dibujar todos los elementos
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);  // Limpiar la pantalla
+            drawPaddle(player.x, player.y, player.width, player.height, player.color);
+            drawPaddle(enemy.x, enemy.y, enemy.width, enemy.height, enemy.color);
+            drawBall(ball.x, ball.y, ball.radius, ball.color);
+            drawScore();
+        }
+
+        // Función del juego
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Manejar la entrada del teclado
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowUp') player.dy = -player.speed;
+            if (e.key === 'ArrowDown') player.dy = player.speed;
+        });
+
+        window.addEventListener('keyup', function(e) {
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') player.dy = 0;
+        });
+
+        // Iniciar el juego
+        gameLoop();
+    </script>
+</body>
+</html>
